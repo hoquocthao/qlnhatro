@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.w3.org/1999/xhtml">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Hệ Thống Quản Lý Nhà Trọ</title>
+  <!-- Tell the browser to be responsive to screen width -->
+  <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+  <!-- shortcut icon -->
+  <link rel="shortcut icon" href="dist/img/fav.png">
+  <!-- Bootstrap 3.3.7 -->
+  <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="bower_components/font-awesome/css/font-awesome.min.css">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="dist/css/AdminLTE.min.css">
+  <!-- Style -->
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- Leaflet style -->
+  <link rel="stylesheet" href="bower_components/leaflet/leaflet.css">
+  <link rel="stylesheet" href="bower_components/leaflet/leaflet-routing-machine.css">
+  <link rel="stylesheet" href="bower_components/leaflet/Control.Geocoder.css">
+  <!-- jdGrid style -->
+  <link rel="stylesheet" href="bower_components/jdgrid/css/jdgrid.css"/>
+  <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+  <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+  <!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+
+  <!-- Google Font -->
+  <!--<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">-->
+  <style type="text/css">
+    body {
+      overflow-y: hidden;
+      /*background-image: url(dist/img/background-learning.jpg) !important;*/
+	}
+    /*
+    .login-logo,.login-logo a {
+      color:#fff;
+      font-size:30px;
+    }
+    .login-box-msg {
+      font-size:20px;
+      font-weight:400
+    }
+    .login-box-body {
+      border-top: 4px solid #367fa9;
+      background-color: rgba(255,255,255,0.7);
+      -webkit-box-shadow: 0 2px 3px rgba(0,0,0,.55);
+      -moz-box-shadow: 0 2px 3px rgba(0,0,0,.55);
+      box-shadow: 0 2px 3px rgba(0,0,0,.55);
+    }
+    */
+
+    #map-container {
+      position:absolute;
+      left:0;
+      top:0;
+      width:100%;
+      height:100%;
+    }
+    .copy {
+      position:fixed;
+      left:0;
+      bottom:0;
+      width:100%;
+      color:#fff;
+      text-align:center;
+      z-index:1000;
+      text-shadow: 0px 0px 3px #000;
+    }
+
+    .marker-ul {
+      list-style:none;
+      padding-left:0px;
+    }
+
+    .marker-ul li {
+      margin-top:5px;
+    }
+
+    .tab-title {
+      font-size:18px;
+    }
+
+    .tab-pane .form-group {
+      margin-bottom: 0px;
+    }
+
+    .search-panel {
+      background-color:white;
+      position:absolute;
+      width:400px;
+      height:100%;
+      top:0;
+      left:-410px;
+      z-index:1001;
+      box-shadow:0px 0px 10px #333;
+      padding:10px;
+    }
+
+    #btn-close-search {
+      position:absolute;
+      top:5px;
+      right:5px;
+      color:#333;
+      width:40px;
+      height:40px;
+      text-align:center;
+      line-height:40px;
+    }
+
+    #btn-close-search:visited {
+      color:#333;
+    }
+
+    #btn-close-search:hover {
+      background-color:#d6d6d6;
+      border-radius:20px;
+      width:40px;
+      height:40px;
+      text-align:center;
+      line-height:40px;
+      /*-webkit-transition: background-color 1000ms ease;
+      -ms-transition: background-color 1000ms ease;
+      transition: background-color 1000ms ease;*/
+    }
+
+    #btn-close-search:active {
+      background-color:#b7b7b7;
+    }
+
+    #search-result {
+      height: 100%;
+      overflow-y:scroll;
+    }
+
+    hr {
+      margin-bottom:0px;
+    }
+
+    .leaflet-routing-alt h2 {
+      font-weight:bold
+    }
+
+    #btn-open-search {
+      position:fixed;
+      left:20px;
+      bottom:20px;
+      width:50px;
+      height:50px;
+      border-radius:50px;
+      z-index:1000;
+      text-align:center;
+      line-height:59px;
+      box-shadow:0px 0px 5px #333;
+    }
+  </style>
+</head>
+<body class="hold-transition login-page">
+  <div id="map-container"></div>
+  <p class="copy"><span th:text="'&copy; '+${#dates.year(#dates.createNow())}"></span> &bull; THẢO - DƯ - ĐỨC</p>
+
+  <div class="search-panel" id="pnl-search">
+    <a href="#" id="btn-close-search"><i class="fa fa-times"></i></a>
+    <h4 style="margin: 20px 0px">TÌM KIẾM NHÀ TRỌ</h4>
+    <form id="frm-search">
+      <div class="form-group">
+        <input type="text" id="txt-keyword" name="keyword" class="form-control" placeholder="Tên khu trọ, tên chủ trọ">
+      </div>
+      <div class="form-group">
+        <input type="number" id="txt-distance" name="distance" class="form-control" placeholder="Bán kính tìm kiếm (m)">
+      </div>
+      <div class="row">
+        <div class="col-md-6">
+          <div class="form-group">
+            <input type="number" id="txt-lat" name="lat" class="form-control" placeholder="Vĩ độ">
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="form-group">
+            <input type="number" id="txt-lon" name="lon" class="form-control" placeholder="Kinh độ">
+          </div>
+        </div>
+      </div>
+      <div class="form-group text-center">
+        <button type="button" class="btn btn-flat btn-primary" id="btn-search"><i class="fa fa-search"></i> Tìm kiếm</button>
+      </div>
+    </form>
+    <div id="search-result">
+    </div>
+  </div>
+  <a href="#" role="button" class="btn-primary" title="Tìm kiếm nhà trọ" id="btn-open-search"><i class="fa fa-2x fa-search"></i></a>
+
+  <!-- Modal thong tin tro -->
+  <div class="modal" role="dialog" id="mod-tt-khu-tro">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-body" id="mod-body">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4>THÔNG TIN NHÀ TRỌ</h4>
+          <div class="nav-tabs-custom">
+            <ul class="nav nav-tabs" role="tablist">
+              <li role="presentation" class="active"><a href="#thong-tin" aria-controls="thong-tin" role="tab" data-toggle="tab" class="tab-title">Thông tin chung</a></li>
+              <li role="presentation"><a href="#phong-tro" aria-controls="phong-tro" role="tab" data-toggle="tab" class="tab-title">Danh sách phòng trọ</a></li>
+              <li role="presentation"><a href="#loai-phong" aria-controls="phong-tro" role="tab" data-toggle="tab" class="tab-title">Các loại phòng trọ</a></li>
+              <li role="presentation"><a href="#khoang-cach" aria-controls="phong-tro" role="tab" data-toggle="tab" class="tab-title">Khoảng cách</a></li>
+            </ul>
+            <div class="tab-content">
+              <div role="tabpanel" class="tab-pane form-horizontal active" id="thong-tin">
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">Tên nhà trọ</label>
+                  <div class="col-sm-7">
+                    <p class="form-control-static"><span id="spn-ten"></span></p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">Số phòng còn trống</label>
+                  <div class="col-sm-7">
+                    <p class="form-control-static"><span id="spn-trong" class="text-primary" style="font-weight:bold"></span></p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">Địa chỉ</label>
+                  <div class="col-sm-7">
+                    <p class="form-control-static"><span id="spn-dc"></span></p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">SĐT Liên hệ</label>
+                  <div class="col-sm-7">
+                    <p class="form-control-static"><span id="spn-sdt"></span> <a class="btn btn-primary btn-sm" id="btn-call" style="padding:2px 10px"><i class="fa fa-phone"></i> Gọi</a></p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">Tên chủ trọ</label>
+                  <div class="col-sm-7">
+                    <p class="form-control-static"><span id="spn-ten-chu"></span></p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">Giới tính</label>
+                  <div class="col-sm-7">
+                    <p class="form-control-static"><span id="spn-nu"></span></p>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="col-sm-3 control-label">Năm sinh</label>
+                  <div class="col-sm-7">
+                    <p class="form-control-static"><span id="spn-ns"></span></p>
+                  </div>
+                </div>
+              </div>
+              <div role="tabpanel" class="tab-pane" id="phong-tro"><div id="lst-phong-tro"></div></div>
+              <div role="tabpanel" class="tab-pane" id="loai-phong"><div id="lst-loai-phong"></div></div>
+              <div role="tabpanel" class="tab-pane" id="khoang-cach"><div id="lst-khoang-cach"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+<!-- jQuery 3 -->
+<script src="bower_components/jquery/dist/jquery.min.js"></script>
+<!-- Bootstrap 3.3.7 -->
+<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<!-- AdminLTE App -->
+<script src="/dist/js/adminlte.min.js"></script>
+<!-- Leaflet 1.7.1 -->
+<script src="bower_components/leaflet/leaflet.js"></script>
+<script src="bower_components/leaflet/leaflet-routing-machine.js"></script>
+<script src="bower_components/leaflet/Control.Geocoder.js"></script>
+<!-- Script -->
+<script src="/js/script.js"></script>
+<!-- jdGrid -->
+<script src="bower_components/jdgrid/js/jdgrid-v4.js" type="text/javascript"></script>
+<!-- Map -->
+<script src="js/map.js"></script>
+</body>
+</html>
